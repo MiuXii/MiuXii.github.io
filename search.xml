@@ -4,6 +4,33 @@
   
     
     <entry>
+      <title>Selenium八大定位</title>
+      <link href="/2025/05/07/Selenium%E5%85%AB%E5%A4%A7%E5%AE%9A%E4%BD%8D/"/>
+      <url>/2025/05/07/Selenium%E5%85%AB%E5%A4%A7%E5%AE%9A%E4%BD%8D/</url>
+      
+        <content type="html"><![CDATA[<meta name="referrer" content="no-referrer"><h1 id="八种常见方式"><a href="#八种常见方式" class="headerlink" title="八种常见方式"></a>八种常见方式</h1><p><img src="https://i-blog.csdnimg.cn/direct/0a098a49a9fc415cafa9098fe5e65b49.png" alt="在这里插入图片描述"></p><h2 id="id定位"><a href="#id定位" class="headerlink" title="id定位"></a>id定位</h2><p><img src="https://i-blog.csdnimg.cn/direct/e9801084c32f4a1b89a3ce4963bc26a6.png" alt="在这里插入图片描述"></p><h2 id="name定位"><a href="#name定位" class="headerlink" title="name定位"></a>name定位</h2><p><img src="https://i-blog.csdnimg.cn/direct/5b3785dac12c4736a8b7fd7cb07e5777.png" alt="在这里插入图片描述"></p><h2 id="linkText定位"><a href="#linkText定位" class="headerlink" title="linkText定位"></a>linkText定位</h2><p><img src="https://i-blog.csdnimg.cn/direct/833000f5df28449aae6e25e2d06b4217.png" alt="在这里插入图片描述"></p><h2 id="partialLinkText定位"><a href="#partialLinkText定位" class="headerlink" title="partialLinkText定位"></a>partialLinkText定位</h2><p><img src="https://i-blog.csdnimg.cn/direct/9dc8d44540404a9dabf1621ef5844c9c.png" alt="在这里插入图片描述"></p><h2 id="class定位"><a href="#class定位" class="headerlink" title="class定位"></a>class定位</h2><p><img src="https://i-blog.csdnimg.cn/direct/525d9b7262f741f9bca2f930506468b7.png" alt="在这里插入图片描述"></p><h2 id="CSS定位"><a href="#CSS定位" class="headerlink" title="CSS定位"></a>CSS定位</h2><p><img src="https://i-blog.csdnimg.cn/direct/0abf427da66a4a8dad52ac8fa3b0ce1f.png" alt="在这里插入图片描述"></p><h2 id="TagName定位"><a href="#TagName定位" class="headerlink" title="TagName定位"></a>TagName定位</h2><p><img src="https://i-blog.csdnimg.cn/direct/a73094ff34a14259bca629e55e049511.png" alt="在这里插入图片描述"></p><h2 id="XPath定位"><a href="#XPath定位" class="headerlink" title="XPath定位"></a>XPath定位</h2><p><img src="https://i-blog.csdnimg.cn/direct/57dce248eae6482c80b33f4211fabf3c.png" alt="在这里插入图片描述"></p>]]></content>
+      
+      
+      <categories>
+          
+          <category> Web自动化 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Web自动化 </tag>
+            
+            <tag> 自动化框架 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>Hello World</title>
       <link href="/2025/05/07/hello-world/"/>
       <url>/2025/05/07/hello-world/</url>
