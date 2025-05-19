@@ -1,0 +1,338 @@
+<!DOCTYPE html><html lang="zh_CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Cookie、Session以及登录鉴权 | 知识小岛</title><meta name="author" content="Xu Wenjin"><meta name="copyright" content="Xu Wenjin"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="ffffff"><meta name="description" content="工作机制基本框架: Workspace：开发者工作区，也就是你当前写代码的目录，它一般保持的是最新仓库代码。 Index &#x2F; Stage：暂存区，最早叫Stage，现在新版本已经改成index，位于.git目录中，它用来存放临时动作，比如我们做了git add或者git rm，都是把文件提交到缓存区，这是可以撤销的，然后在通过git commit将缓存区的内容提交到本地仓库 Rep">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cookie、Session以及登录鉴权">
+<meta property="og:url" content="https://miuxii.github.io/2024/11/19/Git/index.html">
+<meta property="og:site_name" content="知识小岛">
+<meta property="og:description" content="工作机制基本框架: Workspace：开发者工作区，也就是你当前写代码的目录，它一般保持的是最新仓库代码。 Index &#x2F; Stage：暂存区，最早叫Stage，现在新版本已经改成index，位于.git目录中，它用来存放临时动作，比如我们做了git add或者git rm，都是把文件提交到缓存区，这是可以撤销的，然后在通过git commit将缓存区的内容提交到本地仓库 Rep">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://miuxii.github.io/img/cover/Git.jpg">
+<meta property="article:published_time" content="2024-11-19T07:20:33.000Z">
+<meta property="article:modified_time" content="2025-05-19T13:22:36.632Z">
+<meta property="article:author" content="Xu Wenjin">
+<meta property="article:tag" content="个人博客|学习|生活">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://miuxii.github.io/img/cover/Git.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Cookie、Session以及登录鉴权",
+  "url": "https://miuxii.github.io/2024/11/19/Git/",
+  "image": "https://miuxii.github.io/img/cover/Git.jpg",
+  "datePublished": "2024-11-19T07:20:33.000Z",
+  "dateModified": "2025-05-19T13:22:36.632Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "Xu Wenjin",
+      "url": "https://miuxii.github.io/"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/logo.jpg"><link rel="canonical" href="https://miuxii.github.io/2024/11/19/Git/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":-1,"unescape":false,"languages":{"hits_empty":"No results found for: ${query}","hits_stats":"${hits} articles found"}},
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: 'Copy Successful',
+    error: 'Copy Failed',
+    noSupport: 'Browser Not Supported'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: 'Just now',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: {"limitCount":150,"languages":{"author":"Author: Xu Wenjin","link":"Link: ","source":"Source: 知识小岛","info":"Copyright belongs to the author. For commercial use, please contact the author for authorization. For non-commercial use, please indicate the source."}},
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: 'Load More'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Cookie、Session以及登录鉴权',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/mycss.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="web_bg" style="background-image: url(img/background.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/%E5%A4%B4%E5%83%8F.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">11</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">19</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">7</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-graduation-cap"></i><span> 博文</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fa fa-folder-open"></i><span> 归档</span></a></li><li><a class="site-page child" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></li></ul></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 链接</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/links/"><i class="fa-fw fa fa-link"></i><span> 学习资源</span></a></li><li><a class="site-page child" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></li></ul></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 生活</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/photos/"><i class="fa-fw fa fa-camera-retro"></i><span> 相册</span></a></li><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 影视</span></a></li></ul></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(img/cover/Git.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">知识小岛</span></a><a class="nav-page-title" href="/"><span class="site-name">Cookie、Session以及登录鉴权</span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> Search</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fa fa-graduation-cap"></i><span> 博文</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/archives/"><i class="fa-fw fa fa-folder-open"></i><span> 归档</span></a></li><li><a class="site-page child" href="/categories/"><i class="fa-fw fa fa-archive"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fa fa-tags"></i><span> 标签</span></a></li></ul></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 链接</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/links/"><i class="fa-fw fa fa-link"></i><span> 学习资源</span></a></li><li><a class="site-page child" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于我</span></a></li></ul></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-list"></i><span> 生活</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/photos/"><i class="fa-fw fa fa-camera-retro"></i><span> 相册</span></a></li><li><a class="site-page child" href="/music/"><i class="fa-fw fa fa-music"></i><span> 音乐</span></a></li><li><a class="site-page child" href="/movies/"><i class="fa-fw fas fa-video"></i><span> 影视</span></a></li></ul></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Cookie、Session以及登录鉴权</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2024-11-19T07:20:33.000Z" title="Created 2024-11-19 15:20:33">2024-11-19</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2025-05-19T13:22:36.632Z" title="Updated 2025-05-19 21:22:36">2025-05-19</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Git/">Git</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post Views:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><meta name="referrer" content="no-referrer">
+
+
+<h1 id="工作机制"><a href="#工作机制" class="headerlink" title="工作机制"></a>工作机制</h1><h2 id="基本框架"><a href="#基本框架" class="headerlink" title="基本框架:"></a>基本框架:</h2><ul>
+<li>Workspace：开发者工作区，也就是你当前写代码的目录，它一般保持的是最新仓库代码。</li>
+<li>Index &#x2F; Stage：暂存区，最早叫Stage，现在新版本已经改成index，位于.git目录中，它用来存放临时动作，比如我们做了git add或者git rm，都是把文件提交到缓存区，这是可以撤销的，然后在通过git commit将缓存区的内容提交到本地仓库</li>
+<li>Repository：仓库区，是仓库代码，你所有的提交都在这里，git会保存好每一个历史版本，存放在仓库区，它可以是服务端的也可以是本地的，因为在分布式中，任何人都可以是主仓库。</li>
+<li>Remote：远程仓库，只能是别的电脑上的仓库，即服务器仓库。</li>
+</ul>
+<h2 id="流程图"><a href="#流程图" class="headerlink" title="流程图"></a>流程图</h2><p><font color="red">总体工作流程：</font><br><img src="https://i-blog.csdnimg.cn/direct/67cf9e62fc7d45b3a4c96b0f9e0bc107.png" alt="总体工作流程："><br><font color="red">工作区-&gt;暂存区</font><br><img src="https://i-blog.csdnimg.cn/direct/185efed58cb847a98fd69b16ebc189b7.png" alt="工作区-&gt;缓存区"><br><font color="red">工作区-&gt;暂存区-&gt;本地仓库</font><br><img src="https://i-blog.csdnimg.cn/direct/39ee1d1a10a3494cbc4e8c8b2a02ead9.png" alt="工作区-&gt;缓存区-&gt;本地仓库"></p>
+<h1 id="基本命令"><a href="#基本命令" class="headerlink" title="基本命令"></a>基本命令</h1><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>git init</td>
+<td>初始化新建本地仓库</td>
+</tr>
+<tr>
+<td>git add</td>
+<td>添加文件到暂存区</td>
+</tr>
+<tr>
+<td>git status</td>
+<td>查看仓库当前的状态，显示有变更的文件</td>
+</tr>
+<tr>
+<td>git diff</td>
+<td>比较文件的不同，即暂存区和工作区的差异</td>
+</tr>
+<tr>
+<td>git commit</td>
+<td>提交暂存区到本地仓库</td>
+</tr>
+<tr>
+<td>git reset</td>
+<td>回退版本</td>
+</tr>
+<tr>
+<td>git rm</td>
+<td>&#x3D;&#x3D;将文件删除并添加到暂存区&#x3D;&#x3D;，提交后版本库中的文件也被删除</td>
+</tr>
+<tr>
+<td>git mv</td>
+<td>移动或重命名工作区文件</td>
+</tr>
+</tbody></table>
+<h1 id="分支操作"><a href="#分支操作" class="headerlink" title="分支操作"></a>分支操作</h1><p><code>使用分支可以开辟不同开发路线</code></p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>git branch 分支名</td>
+<td>创建分支（当前分支必须不为空）</td>
+</tr>
+<tr>
+<td>git branch -v</td>
+<td>查看分支（分支为空的不显示）</td>
+</tr>
+<tr>
+<td>git checkout 分支名</td>
+<td>切换分支</td>
+</tr>
+<tr>
+<td>git merge 需要合并的分支名</td>
+<td>把指定的分支合并到当前分支上</td>
+</tr>
+<tr>
+<td>git branch -d 分支名</td>
+<td>删除本地已合并的分支（&#x3D;&#x3D;需在其他分支上进行&#x3D;&#x3D;）</td>
+</tr>
+</tbody></table>
+<h1 id="远程仓库"><a href="#远程仓库" class="headerlink" title="远程仓库"></a>远程仓库</h1><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>git remote</td>
+<td>查看已配置的远程仓库</td>
+</tr>
+<tr>
+<td>git pull</td>
+<td>拉取远程仓库修改后的文件</td>
+</tr>
+<tr>
+<td>git fetch</td>
+<td>拉取远程仓库的所有分支</td>
+</tr>
+</tbody></table>
+<h2 id="本地仓库关联远程仓库"><a href="#本地仓库关联远程仓库" class="headerlink" title="本地仓库关联远程仓库"></a>本地仓库关联远程仓库</h2><p><code>git remote add origin 远程仓库URL</code><br><code>git push origin 远程仓库对应的分支</code>可以上传新的分支，和新分支中修改上传的文件</p>
+<h1 id="版本回退"><a href="#版本回退" class="headerlink" title="版本回退"></a>版本回退</h1><p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Zhihua_W/article/details/116537606?ops_request_misc=%257B%2522request%255Fid%2522%253A%25223fb19caf2eea9e358654a10b916519dc%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=3fb19caf2eea9e358654a10b916519dc&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_positive~default-1-116537606-null-null.142%5Ev102%5Epc_search_result_base1&utm_term=git%E7%89%88%E6%9C%AC%E5%9B%9E%E9%80%80&spm=1018.2226.3001.4187">参考博客</a></p>
+<h2 id="git-log-查看提交历史"><a href="#git-log-查看提交历史" class="headerlink" title="git log-查看提交历史"></a>git log-查看提交历史</h2><p>git log如果不带任何参数，它会列出所有历史记录，最近的排在最上方，显示提交对象的哈希值(commit id)，作者、提交日期、和提交说明。如果记录过多，则按Page Up、Page Down、↓、↑来控制显示；按Q退出历史记录列表。</p>
+<h2 id="reset回退"><a href="#reset回退" class="headerlink" title="reset回退"></a>reset回退</h2><blockquote>
+<p>此种方式不是很推荐,通过reset的方式，把head指针指向之前的某次提交，reset之后，后面的版本就找不到了。</p>
+</blockquote>
+<ul>
+<li>使用git log查找到所需要回退到的版本号，即提交记录的commit id；例如：576223db1ee100a79b4f82d6713cef700d723018；</li>
+<li>在客户端执行如下命令（执行前，先将本地代码切换到对应分支）git reset –hard 576223db1ee100a79b4f82d6713cef700d723018；</li>
+</ul>
+<h2 id="revert回退"><a href="#revert回退" class="headerlink" title="revert回退"></a>revert回退</h2><blockquote>
+<p>这种方式不会把版本往前回退，而是生成一个新的版本。所以，你只需要让别人更新一下代码就可以了，你之前操作的提交记录也会被保留下来。例如我们在开发种一共提交了四次分别是A、B、C、D，此时我们发现操作失误需要回退到B，则使用revert之后会生成一个E版本。<br>步骤：</p>
+</blockquote>
+<ul>
+<li>使用git log查找到所需要回退到的版本号，即提交记录的commit id；例如：a53a22f1e8b7ed0c7a9355e8563d234b5b99dd53；</li>
+<li>在客户端执行如下命令git revert -n a53a22f1e8b7ed0c7a9355e8563d234b5b99dd53;</li>
+<li>使用git commit -m ‘版本回退’进行提交；</li>
+<li>git push同步推送到远程仓库即可；</li>
+</ul>
+<h1 id="冲突手动解决"><a href="#冲突手动解决" class="headerlink" title="冲突手动解决"></a>冲突手动解决</h1><p>Git冲突通常发生在合并分支时，如果两个分支都修改了同一个文件的同一部分，则Git无法自动合并这些更改，需要手动解决。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</span><br><span class="line">当前分支的代码</span><br><span class="line">=======</span><br><span class="line">要合并分支的代码</span><br><span class="line">&gt;&gt;&gt;&gt;&gt;&gt;&gt; branch-name</span><br></pre></td></tr></table></figure>
+<p>步骤：</p>
+<ul>
+<li>执行 git status 查看冲突文件 ，git diff显示具体冲突内容。</li>
+<li>用文本编辑器打开冲突文件（vim file），删除冲突标记（&lt;&lt;&lt;&lt;&lt;&lt;&lt;、&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;、&gt;&gt;&gt;&gt;&gt;&gt;&gt;），保留需要的代码</li>
+<li>保存后git add.</li>
+<li>Git commit – m “添加注释已解决冲突”</li>
+</ul>
+<hr>
+<p><img src="https://i-blog.csdnimg.cn/direct/57df99d510b64317ab036b7d6e68057a.gif#pic_center" alt="在这里插入图片描述"></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>Author: </span><span class="post-copyright-info"><a href="https://miuxii.github.io">Xu Wenjin</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>Link: </span><span class="post-copyright-info"><a href="https://miuxii.github.io/2024/11/19/Git/">https://miuxii.github.io/2024/11/19/Git/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>Copyright Notice: </span><span class="post-copyright-info">All articles on this blog are licensed under <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless otherwise stated.</span></div></div><div class="tag_share"><div class="post-share"><div class="social-share" data-image="/img/cover/Git.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related  no-desc" href="/2024/10/25/git-clone%E7%94%A8http%E8%BF%98%E6%98%AFssh/" title="git_clone用http还是ssh?"><img class="cover" src="/img/cover/Git.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">Previous</div><div class="info-item-2">git_clone用http还是ssh?</div></div></div></a><a class="pagination-related" href="/2024/11/20/%E5%90%8E%E7%AB%AF/" title="Spring框架后端八股"><img class="cover" src="/img/cover/Spring%E6%A1%86%E6%9E%B6%E5%90%8E%E7%AB%AF%E5%85%AB%E8%82%A1.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">Next</div><div class="info-item-2">Spring框架后端八股</div></div><div class="info-2"><div class="info-item-1">本文总结了Java后端开发及Spring框架相关知识。</div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> Comments</span></div></div><div class="comment-wrap"><div><div id="lv-container" data-id="city" data-uid="MTAyMC82MDYzOS8zNzExMA=="></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Contents</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%B7%A5%E4%BD%9C%E6%9C%BA%E5%88%B6"><span class="toc-number">1.</span> <span class="toc-text">工作机制</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E6%A1%86%E6%9E%B6"><span class="toc-number">1.1.</span> <span class="toc-text">基本框架:</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%81%E7%A8%8B%E5%9B%BE"><span class="toc-number">1.2.</span> <span class="toc-text">流程图</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="toc-number">2.</span> <span class="toc-text">基本命令</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%88%86%E6%94%AF%E6%93%8D%E4%BD%9C"><span class="toc-number">3.</span> <span class="toc-text">分支操作</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%BF%9C%E7%A8%8B%E4%BB%93%E5%BA%93"><span class="toc-number">4.</span> <span class="toc-text">远程仓库</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%AC%E5%9C%B0%E4%BB%93%E5%BA%93%E5%85%B3%E8%81%94%E8%BF%9C%E7%A8%8B%E4%BB%93%E5%BA%93"><span class="toc-number">4.1.</span> <span class="toc-text">本地仓库关联远程仓库</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%89%88%E6%9C%AC%E5%9B%9E%E9%80%80"><span class="toc-number">5.</span> <span class="toc-text">版本回退</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#git-log-%E6%9F%A5%E7%9C%8B%E6%8F%90%E4%BA%A4%E5%8E%86%E5%8F%B2"><span class="toc-number">5.1.</span> <span class="toc-text">git log-查看提交历史</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#reset%E5%9B%9E%E9%80%80"><span class="toc-number">5.2.</span> <span class="toc-text">reset回退</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#revert%E5%9B%9E%E9%80%80"><span class="toc-number">5.3.</span> <span class="toc-text">revert回退</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%86%B2%E7%AA%81%E6%89%8B%E5%8A%A8%E8%A7%A3%E5%86%B3"><span class="toc-number">6.</span> <span class="toc-text">冲突手动解决</span></a></li></ol></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2024 - 2025 By Xu Wenjin</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.3.5</a></div><div class="footer_custom_text">欢迎浏览我的博客</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Reading Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Toggle Between Light and Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle Between Single-column and Double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="Settings"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table of Contents"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="Scroll to Comments"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="Back to Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"><script>(() => {
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+
+  const loadLivere = (el, path) => {
+    window.livereOptions = {
+      refer: path || location.pathname
+    }
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyLivere = () => {
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+
+    if (typeof LivereTower === 'object') window.LivereTower.init()
+    else {
+      (function(d, s) {
+          var j, e = d.getElementsByTagName(s)[0];
+          if (typeof LivereTower === 'function') { return; }
+          j = d.createElement(s);
+          j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+          j.async = true;
+          e.parentNode.insertBefore(j, e);
+      })(document, 'script');
+    }
+  }
+
+  if (isShuoshuo) {
+    'Livere' === 'Livere'
+      ? window.shuoshuoComment = { loadComment: loadLivere }
+      : window.loadOtherComment = loadLivere
+    return
+  }
+
+  if ('Livere' === 'Livere' || !false) {
+    if (false) btf.loadComment(document.getElementById('lv-container'), loadLivere)
+    else loadLivere()
+  } else {
+    window.loadOtherComment = loadLivere
+  }
+})()</script></div><canvas class="fireworks" mobile="false"></canvas><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/fireworks.min.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="99" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/canvas-nest.min.js"></script><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = true;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="关键字搜索" type="text"/></div></div><hr/><div id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>
